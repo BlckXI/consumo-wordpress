@@ -22,9 +22,13 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final RabbitTemplate  rabbitTemplate;
 
+    // Inyectamos el servicio de correo aquí arriba con las demás dependencias
+    private final EmailService emailService;
+
     /**
      * 1. Guarda el pedido en MySQL (estado PENDING).
      * 2. Publica el evento en RabbitMQ para que Grupo B lo procese.
+     * 3. Envía el correo de confirmación al cliente.
      */
     @Transactional
     public Order createOrder(CreateOrderRequest request) {
@@ -44,7 +48,6 @@ public class OrderService {
         log.info("Pedido #{} guardado en MySQL con estado PENDING", saved.getId());
 
         // ── PASO 2: publicar evento ──────────────────────────────────────
-        // Los nombres de campo del evento coinciden con PedidoEvent de Grupo B
         OrderCreatedEvent event = new OrderCreatedEvent(
                 saved.getId(),
                 saved.getFirstName(),
@@ -67,17 +70,29 @@ public class OrderService {
         log.info("Evento publicado en RabbitMQ → exchange='{}' routingKey='{}'",
                 RabbitConfig.SHARED_EXCHANGE, RabbitConfig.RK_ORDERS_OUT);
 
+        // ── PASO 3: Acción de envío de correo ────────────────────────────
+        try {
+            String asunto = "Confirmación de Pedido #" + saved.getId();
+            String mensaje = "Hola " + request.getFirstName() + ",\n\nHemos recibido tu pedido de: "
+                    + request.getProductName() + ".\nPronto te notificaremos sobre el estado de la entrega en: "
+                    + request.getDeliveryAddress() + ".\n\nGracias por tu compra.";
+
+            emailService.sendEmail(request.getEmail(), asunto, mensaje);
+            log.info("Correo de confirmación enviado exitosamente a: {}", request.getEmail());
+        } catch (Exception e) {
+            log.error("El pedido se creó en BD y RabbitMQ, pero el correo falló: {}", e.getMessage());
+        }
+
         return saved;
     }
 
     /**
      * Actualiza el pedido cuando Grupo B responde con la confirmación.
-     * Llamado desde {@link com.colibrihub.wordpress.listener.OrderResponseListener}.
      */
     @Transactional
     public void updateOrderStatus(Long orderId, String status,
-                                   String wooOrderId, String espoCrmContactId,
-                                   String message) {
+                                  String wooOrderId, String espoCrmContactId,
+                                  String message) {
         orderRepository.findById(orderId).ifPresentOrElse(order -> {
             if ("COMPLETADO".equalsIgnoreCase(status)) {
                 order.setStatus(OrderStatus.COMPLETED);
