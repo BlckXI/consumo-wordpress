@@ -1,0 +1,59 @@
+server:
+  port: 8081
+
+spring:
+  cache:
+    type: redis
+    redis:
+      time-to-live: 600000
+  data: # ← debe estar al mismo nivel que cache, no dentro de él
+    redis:
+      host: localhost
+      port: 6379
+  application:
+    name: consumo-wordpress
+  datasource:
+    url: jdbc:mysql://localhost:3307/ingenieria_web
+    username: springboot
+    password: springboot123
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update  # Crea/actualiza tablas automáticamente
+    show-sql: true
+    # Muestra SQL en consola (útil para aprender)
+    properties:
+      hibernate:
+        format_sql: true  # SQL formateado (más legible)
+        dialect: org.hibernate.dialect.MySQL8Dialect
+  rabbitmq:
+    host: 84.46.241.34
+    port: 5672
+    username: admin
+    password: cambia_esta_password
+
+
+espocrm:
+  base-url: http://localhost:8082
+  api-key: 04c0927e8c6710264785ee770d191723
+
+wordpress:
+  url: ${WORDPRESS_URL:https://wordpress.colibrihub.com/wp-json/wp/v2/posts}
+  base-url: ${WORDPRESS_URL:https://wordpress.colibrihub.com}
+  username: ${WORDPRESS_USER:admin}
+  app-password: ${WORDPRESS_APP_PASSWORD:91XE K2iQ JECb Cbew 5jii CFQX}
+
+woocommerce:
+  base-url: ${WORDPRESS_URL:https://wordpress.colibrihub.com}
+  consumer-key: ${WOO_CONSUMER_KEY:ck_a84b22b5ed3001ab823202514250829ba6d4c1f2}
+  consumer-secret: ${WOO_CONSUMER_SECRET:cs_8d442527e37c3549d70bc57cf23cddcc508598f9}
+
+
+
+#Yvym e4kl OEPl VCEN oYAp AIuX
+
+#Clave del cliente
+#ck_719197baeb4144de75734a8f16708accd23b7470
+
+#Clave secreta del cliente
+#cs_77a65b6c8e4f4025145c1f58e38e2891369b8d64
